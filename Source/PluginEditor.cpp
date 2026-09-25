@@ -99,7 +99,6 @@ SendConditionerEditor::Toggle* SendConditionerEditor::addToggle (const char* id,
     auto t = std::make_unique<Toggle>();
     t->button.setButtonText (text);
     t->button.setTooltip (tip);
-    t->button.onClick = [this] { updateEnablement(); };
     addAndMakeVisible (t->button);
     t->att = std::make_unique<APVTS::ButtonAttachment> (proc.apvts, id, t->button);
     toggles.push_back (std::move (t));
@@ -174,6 +173,11 @@ SendConditionerEditor::SendConditionerEditor (SendConditionerProcessor& p)
     mix       = addKnob   (scp::mix,       "Mix", jp (u8"処理前の音との混ぜ具合"));
     outGain   = addKnob   (scp::outGain,   jp (u8"出力"));
 
+    // hook up enablement only after every control exists
+    // (attachments fire a click while the toggles are being created)
+    for (auto& t : toggles)
+        t->button.onClick = [this] { updateEnablement(); };
+
     setSize (editorW, editorH);
     updateEnablement();
     startTimerHz (30);
@@ -187,6 +191,12 @@ SendConditionerEditor::~SendConditionerEditor()
 
 void SendConditionerEditor::updateEnablement()
 {
+    if (pdSync == nullptr || pdNote == nullptr || pdMs == nullptr || duckOn == nullptr
+         || duckThr == nullptr || duckAmt == nullptr || duckAtk == nullptr || duckRel == nullptr
+         || gateOn == nullptr || gateThr == nullptr || gateRel == nullptr || gateLen == nullptr
+         || lfoOn == nullptr || lfoAmt == nullptr || lfoRate == nullptr || lfoShape == nullptr)
+        return;
+
     const bool sync = pdSync->button.getToggleState();
     pdNote->box.setEnabled (sync);
     pdMs->slider.setEnabled (! sync);
